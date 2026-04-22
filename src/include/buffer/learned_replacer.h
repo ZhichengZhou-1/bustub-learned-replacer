@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <fstream>
 #include <list>
 #include <mutex>  // NOLINT
 #include <optional>
@@ -103,9 +104,13 @@ class LearnedReplacer {
   std::mutex latch_;
 
   // ONNX Runtime state — void* to avoid including onnxruntime headers here
-  // We'll forward declare properly in Phase 5
   [[maybe_unused]] void *ort_env_{nullptr};
   [[maybe_unused]] void *ort_session_{nullptr};
+
+  // Trace collection
+  std::ofstream trace_file_;
+  bool tracing_enabled_{false};
+
   bool model_loaded_{false};
 };
 

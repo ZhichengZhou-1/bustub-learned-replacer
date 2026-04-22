@@ -19,10 +19,19 @@ LearnedReplacer::LearnedReplacer(size_t num_frames, const std::string &model_pat
   // TODO(Phase 5): load ONNX model here
   // For now we run in fallback (LRU) mode
   model_loaded_ = false;
+  // Open trace file for writing
+  trace_file_.open("access_trace.csv", std::ios::out | std::ios::trunc);
+  if (trace_file_.is_open()) {
+    trace_file_ << "timestamp,frame_id,page_id,access_type\n";
+    tracing_enabled_ = true;
+  }
 }
 
 LearnedReplacer::~LearnedReplacer() {
   // TODO(Phase 5): free ONNX session and env
+  if (trace_file_.is_open()) {
+    trace_file_.close();
+  }
 }
 
 auto LearnedReplacer::Evict() -> std::optional<frame_id_t> {
@@ -66,6 +75,12 @@ void LearnedReplacer::RecordAccess(frame_id_t frame_id, page_id_t page_id, Acces
 
   if (static_cast<size_t>(frame_id) >= replacer_size_) {
     throw Exception("LearnedReplacer: invalid frame_id in RecordAccess");
+
+    // Write to trace file
+    if (tracing_enabled_) {
+      trace_file_ << current_timestamp_ << "," << frame_id << "," << page_id << "," << static_cast<int>(access_type)
+                  << "\n";
+    }
   }
 
   current_timestamp_++;

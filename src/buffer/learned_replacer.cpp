@@ -20,9 +20,13 @@ LearnedReplacer::LearnedReplacer(size_t num_frames, const std::string &model_pat
   // For now we run in fallback (LRU) mode
   model_loaded_ = false;
   // Open trace file for writing
-  trace_file_.open("access_trace.csv", std::ios::out | std::ios::trunc);
+  trace_file_.open("access_trace.csv", std::ios::out | std::ios::app);
   if (trace_file_.is_open()) {
-    trace_file_ << "timestamp,frame_id,page_id,access_type\n";
+    // Write header only if file is empty
+    trace_file_.seekp(0, std::ios::end);
+    if (trace_file_.tellp() == 0) {
+      trace_file_ << "timestamp,frame_id,page_id,access_type\n";
+    }
     tracing_enabled_ = true;
   }
 }
@@ -80,6 +84,7 @@ void LearnedReplacer::RecordAccess(frame_id_t frame_id, page_id_t page_id, Acces
     if (tracing_enabled_) {
       trace_file_ << current_timestamp_ << "," << frame_id << "," << page_id << "," << static_cast<int>(access_type)
                   << "\n";
+      trace_file_.flush();
     }
   }
 
@@ -100,6 +105,13 @@ void LearnedReplacer::RecordAccess(frame_id_t frame_id, page_id_t page_id, Acces
   meta.recency_ = static_cast<float>(current_timestamp_);
   meta.last_access_timestamp_ = current_timestamp_;
   meta.access_type_ = static_cast<float>(access_type);
+
+  // Write to trace file
+  if (tracing_enabled_) {
+    trace_file_ << current_timestamp_ << "," << frame_id << "," << page_id << "," << static_cast<int>(access_type)
+                << "\n";
+    trace_file_.flush();
+  }
 }
 
 void LearnedReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {

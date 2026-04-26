@@ -14,3 +14,6 @@ add_backward(nc-shell)
 add_backward(sqllogictest)
 add_backward(terrier-bench)
 add_backward(b_plus_tree_printer)
+
+add_subdirectory(buffer_benchmark)
+

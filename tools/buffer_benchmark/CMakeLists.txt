@@ -1,0 +1,2 @@
+add_executable(buffer_benchmark buffer_benchmark.cpp)
+target_link_libraries(buffer_benchmark bustub)

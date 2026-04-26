@@ -127,6 +127,13 @@ torch.onnx.export(
     dynamic_axes={"features": {0: "batch"}},
     opset_version=18,
 )
+
+import onnx
+
+model_onnx = onnx.load(onnx_path)
+onnx.save(model_onnx, onnx_path, save_as_external_data=False)
+print(f"Saved self-contained model to {onnx_path}")
+
 print(f"\nExported model to {onnx_path}")
 
 # ─── 7. Quick sanity check ────────────────────────────────────────────────────

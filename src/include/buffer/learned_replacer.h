@@ -22,6 +22,7 @@
 #include "common/config.h"
 #include "common/macros.h"
 
+#include "onnxruntime_cxx_api.h"
 namespace bustub {
 
 /**
@@ -103,9 +104,10 @@ class LearnedReplacer {
   // Thread safety
   std::mutex latch_;
 
-  // ONNX Runtime state — void* to avoid including onnxruntime headers here
-  [[maybe_unused]] void *ort_env_{nullptr};
-  [[maybe_unused]] void *ort_session_{nullptr};
+  // ONNX Runtime
+  Ort::Env ort_env_{ORT_LOGGING_LEVEL_WARNING, "learned_replacer"};
+  std::unique_ptr<Ort::Session> ort_session_{nullptr};
+  Ort::SessionOptions ort_session_options_;
 
   // Trace collection
   std::ofstream trace_file_;

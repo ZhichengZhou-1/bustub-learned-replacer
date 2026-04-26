@@ -1,0 +1,2 @@
+echo "model.onnx.data" >> python/.gitignore
+echo "*.onnx" >> python/.gitignore

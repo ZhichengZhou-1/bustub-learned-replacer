@@ -148,7 +148,7 @@ set(BUSTUB_THIRD_PARTY_INCLUDE_DIR
         ${PROJECT_SOURCE_DIR}/third_party/backward-cpp
 )
 
-include_directories(${BUSTUB_SRC_INCLUDE_DIR} ${BUSTUB_TEST_INCLUDE_DIR} ${BUSTUB_THIRD_PARTY_INCLUDE_DIR})
+include_directories(${BUSTUB_SRC_INCLUDE_DIR} ${BUSTUB_TEST_INCLUDE_DIR} ${BUSTUB_THIRD_PARTY_INCLUDE_DIR} /opt/homebrew/Cellar/onnxruntime/1.25.0/include/onnxruntime)
 include_directories(BEFORE src) # This is needed for gtest.
 
 function(disable_target_warnings NAME)

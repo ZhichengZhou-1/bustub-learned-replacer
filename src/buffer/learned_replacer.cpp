@@ -16,9 +16,16 @@
 namespace bustub {
 
 LearnedReplacer::LearnedReplacer(size_t num_frames, const std::string &model_path) : replacer_size_(num_frames) {
-  // TODO(Phase 5): load ONNX model here
-  // For now we run in fallback (LRU) mode
-  model_loaded_ = false;
+  // Load ONNX model
+  try {
+    ort_session_ = std::make_unique<Ort::Session>(ort_env_, model_path.c_str(), ort_session_options_);
+    model_loaded_ = true;
+    std::cout << "[LearnedReplacer] Model loaded from " << model_path << "\n";
+  } catch (const Ort::Exception &e) {
+    std::cout << "[LearnedReplacer] Model not found, using LRU fallback: " << e.what() << "\n";
+    model_loaded_ = false;
+  }
+
   // Open trace file for writing
   trace_file_.open("access_trace.csv", std::ios::out | std::ios::app);
   if (trace_file_.is_open()) {
@@ -157,9 +164,28 @@ auto LearnedReplacer::Size() -> size_t {
 }
 
 auto LearnedReplacer::RunInference(const FrameMeta &meta) -> float {
-  // TODO(Phase 5): replace with ONNX inference
-  // For now return 0 — caller falls through to FallbackEvict
-  return 0.0f;
+  if (!model_loaded_ || ort_session_ == nullptr) {
+    return 0.0f;
+  }
+
+  try {
+    // Build feature vector: [frequency, recency, avg_interval, access_type]
+    std::array<float, 4> features = {meta.frequency_, meta.recency_, meta.avg_interval_, meta.access_type_};
+
+    std::array<int64_t, 2> input_shape{1, 4};
+    auto memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+    auto input_tensor = Ort::Value::CreateTensor<float>(memory_info, features.data(), 4, input_shape.data(), 2);
+
+    const char *input_names[] = {"features"};
+    const char *output_names[] = {"score"};
+
+    auto output = ort_session_->Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
+
+    return *output[0].GetTensorData<float>();
+
+  } catch (const Ort::Exception &e) {
+    return 0.0f;
+  }
 }
 
 auto LearnedReplacer::FallbackEvict() -> std::optional<frame_id_t> {

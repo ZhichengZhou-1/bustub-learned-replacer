@@ -44,3 +44,20 @@
 - [ ] Increase training data size
 - [ ] Tune window size for label generation
 - [ ] Compare against ARC baseline (not just LRU)
+
+## V2: Mixed-workload trained model
+
+- Trained only on mixed_trace.csv
+- Fixed trace file naming (per-workload traces)
+
+| Workload      | Hit Rate | Delta vs LRU |
+| ------------- | -------- | ------------ |
+| Sequential    | 26.48%   | +26.48% ✅   |
+| Random        | 32.36%   | +0.78% ✅    |
+| Mixed (80/20) | 84.26%   | -0.08% ≈     |
+
+### Key finding
+
+Training on representative workload data is critical.
+Model trained on mixed trace matches LRU on mixed workload
+while still outperforming on sequential scans.

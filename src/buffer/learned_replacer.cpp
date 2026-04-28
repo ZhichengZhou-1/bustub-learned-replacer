@@ -15,7 +15,8 @@
 
 namespace bustub {
 
-LearnedReplacer::LearnedReplacer(size_t num_frames, const std::string &model_path) : replacer_size_(num_frames) {
+LearnedReplacer::LearnedReplacer(size_t num_frames, const std::string &model_path, const std::string &trace_path)
+    : replacer_size_(num_frames) {
   // Load ONNX model
   try {
     ort_session_ = std::make_unique<Ort::Session>(ort_env_, model_path.c_str(), ort_session_options_);
@@ -27,14 +28,14 @@ LearnedReplacer::LearnedReplacer(size_t num_frames, const std::string &model_pat
   }
 
   // Open trace file for writing
-  trace_file_.open("access_trace.csv", std::ios::out | std::ios::app);
+  trace_file_.open(trace_path, std::ios::out | std::ios::trunc);
+
   if (trace_file_.is_open()) {
-    // Write header only if file is empty
-    trace_file_.seekp(0, std::ios::end);
-    if (trace_file_.tellp() == 0) {
-      trace_file_ << "timestamp,frame_id,page_id,access_type\n";
-    }
+    trace_file_ << "timestamp,frame_id,page_id,access_type\n";
     tracing_enabled_ = true;
+    std::cout << "[LearnedReplacer] Trace writing to: " << trace_path << "\n";
+  } else {
+    std::cout << "[LearnedReplacer] FAILED to open trace file: " << trace_path << "\n";
   }
 }
 
@@ -108,8 +109,9 @@ void LearnedReplacer::RecordAccess(frame_id_t frame_id, page_id_t page_id, Acces
   }
 
   // Update features
+  meta.time_since_last_access_ =
+      (meta.frequency_ > 0) ? static_cast<float>(current_timestamp_ - meta.last_access_timestamp_) : 999.0f;
   meta.frequency_++;
-  meta.recency_ = static_cast<float>(current_timestamp_);
   meta.last_access_timestamp_ = current_timestamp_;
   meta.access_type_ = static_cast<float>(access_type);
 
@@ -169,8 +171,18 @@ auto LearnedReplacer::RunInference(const FrameMeta &meta) -> float {
   }
 
   try {
-    // Build feature vector: [frequency, recency, avg_interval, access_type]
-    std::array<float, 4> features = {meta.frequency_, meta.recency_, meta.avg_interval_, meta.access_type_};
+    // Scaler params from python/scaler_params.json
+    // features: [frequency, time_since_last_access, avg_interval, access_type]
+    constexpr std::array<float, 4> MEANS = {1163.4129f, 7.7876f, 6.7221f, 1.0f};
+    constexpr std::array<float, 4> STDS = {1362.5994f, 29.1223f, 3.4646f, 1.0f};
+
+    std::array<float, 4> raw = {meta.frequency_, meta.time_since_last_access_, meta.avg_interval_, meta.access_type_};
+
+    // Apply normalization
+    std::array<float, 4> features{};
+    for (int i = 0; i < 4; i++) {
+      features[i] = (raw[i] - MEANS[i]) / STDS[i];
+    }
 
     std::array<int64_t, 2> input_shape{1, 4};
     auto memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
@@ -181,7 +193,17 @@ auto LearnedReplacer::RunInference(const FrameMeta &meta) -> float {
 
     auto output = ort_session_->Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
 
-    return *output[0].GetTensorData<float>();
+    float score = *output[0].GetTensorData<float>();
+
+    // DEBUG: print first 10 eviction decisions
+    static int call_count = 0;
+    call_count++;
+    if (call_count % 1000 == 0) {
+      std::cout << "[DEBUG] freq=" << meta.frequency_ << " tsla=" << meta.time_since_last_access_
+                << " avg_int=" << meta.avg_interval_ << " score=" << score << "\n";
+    }
+
+    return score;
 
   } catch (const Ort::Exception &e) {
     return 0.0f;

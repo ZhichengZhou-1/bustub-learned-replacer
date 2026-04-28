@@ -36,7 +36,7 @@ struct FrameMeta {
   float frequency_{0};
 
   // Feature 2: timestamp of the most recent access (higher = more recent)
-  float recency_{0};
+  float time_since_last_access_{0};
 
   // Feature 3: average time between accesses (lower = accessed more regularly)
   float avg_interval_{0};
@@ -59,7 +59,8 @@ struct FrameMeta {
  */
 class LearnedReplacer {
  public:
-  explicit LearnedReplacer(size_t num_frames, const std::string &model_path = "learned_replacer.onnx");
+  explicit LearnedReplacer(size_t num_frames, const std::string &model_path = "learned_replacer.onnx",
+                           const std::string &trace_path = "access_trace.csv");
 
   DISALLOW_COPY_AND_MOVE(LearnedReplacer);
 

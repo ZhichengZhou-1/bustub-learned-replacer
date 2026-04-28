@@ -10,6 +10,10 @@ BusTub supports basic SQL and comes with an interactive shell. You can get it ru
 
 <img src="logo/sql.png" alt="BusTub SQL" width="400">
 
+---
+
+> **This fork extends BusTub with a learned buffer replacement policy as a graduate research project.**
+
 # Learned Buffer Replacement in BusTub
 
 A research project that replaces BusTub's ARC buffer replacement policy with a neural network trained to approximate Bélady's optimal eviction algorithm. The model is trained offline in Python using PyTorch, exported to ONNX, and loaded at runtime in C++ via ONNX Runtime — with zero Python dependency inside the database.
@@ -228,7 +232,3 @@ See `notes/results.md` for full version history and improvement tracking.
 This project differs from all of the above by implementing learned replacement inside a real DBMS buffer pool manager (BusTub) rather than a cache simulator, and by exploiting database-specific `AccessType` metadata not available in CPU cache or CDN cache contexts.
 
 ---
-
-## Authors
-
-Zhicheng Zhou — CMSC624 Database Systems and Architecture, Spring 2025

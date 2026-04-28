@@ -249,4 +249,6 @@ docs/dev
 .aider*
 
 # Training artifacts
-python/model*
+python/model*python/best_model.pt
+python/scaler_params.json
+python/__pycache__/

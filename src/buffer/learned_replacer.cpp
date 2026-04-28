@@ -54,17 +54,29 @@ auto LearnedReplacer::Evict() -> std::optional<frame_id_t> {
   }
 
   if (model_loaded_) {
-    // Score every evictable frame and evict the one with lowest score
     frame_id_t best_frame = -1;
-    float lowest_score = std::numeric_limits<float>::max();
+    float highest_score = -std::numeric_limits<float>::max();
+
+    // DEBUG
+    static int evict_count = 0;
+    if (evict_count < 5) {
+      std::cout << "[EVICT DEBUG] Candidates:\n";
+      for (auto &[fid, meta] : frame_meta_) {
+        if (!meta.is_evictable_) continue;
+        float s = RunInference(meta);
+        std::cout << "  frame=" << fid << " freq=" << meta.frequency_ << " tsla=" << meta.time_since_last_access_
+                  << " score=" << s << "\n";
+      }
+      evict_count++;
+    }
 
     for (auto &[fid, meta] : frame_meta_) {
       if (!meta.is_evictable_) {
         continue;
       }
       float score = RunInference(meta);
-      if (score < lowest_score) {
-        lowest_score = score;
+      if (score > highest_score) {
+        highest_score = score;
         best_frame = fid;
       }
     }
@@ -82,7 +94,8 @@ auto LearnedReplacer::Evict() -> std::optional<frame_id_t> {
   return FallbackEvict();
 }
 
-void LearnedReplacer::RecordAccess(frame_id_t frame_id, page_id_t page_id, AccessType access_type) {
+void LearnedReplacer::RecordAccess(frame_id_t frame_id, page_id_t page_id, AccessType access_type,
+                                   float workload_feat) {
   std::scoped_lock lock(latch_);
 
   if (static_cast<size_t>(frame_id) >= replacer_size_) {
@@ -113,7 +126,7 @@ void LearnedReplacer::RecordAccess(frame_id_t frame_id, page_id_t page_id, Acces
       (meta.frequency_ > 0) ? static_cast<float>(current_timestamp_ - meta.last_access_timestamp_) : 999.0f;
   meta.frequency_++;
   meta.last_access_timestamp_ = current_timestamp_;
-  meta.access_type_ = static_cast<float>(access_type);
+  meta.workload_feat_ = workload_feat;
 
   // Write to trace file
   if (tracing_enabled_) {
@@ -171,39 +184,27 @@ auto LearnedReplacer::RunInference(const FrameMeta &meta) -> float {
   }
 
   try {
-    // Scaler params from python/scaler_params.json
-    // features: [frequency, time_since_last_access, avg_interval, access_type]
-    constexpr std::array<float, 4> MEANS = {1163.4129f, 7.7876f, 6.7221f, 1.0f};
-    constexpr std::array<float, 4> STDS = {1362.5994f, 29.1223f, 3.4646f, 1.0f};
+    constexpr std::array<float, 5> MEANS = {1316.6837f, 67.3017f, 59.4072f, 1.0f, 1.0f};
+    constexpr std::array<float, 5> STDS = {2188.5430f, 209.5870f, 123.8517f, 1.0f, 0.8165f};
 
-    std::array<float, 4> raw = {meta.frequency_, meta.time_since_last_access_, meta.avg_interval_, meta.access_type_};
+    std::array<float, 5> raw = {meta.frequency_, meta.time_since_last_access_, meta.avg_interval_, meta.access_type_,
+                                meta.workload_feat_};
 
-    // Apply normalization
-    std::array<float, 4> features{};
-    for (int i = 0; i < 4; i++) {
+    std::array<float, 5> features{};
+    for (int i = 0; i < 5; i++) {
       features[i] = (raw[i] - MEANS[i]) / STDS[i];
     }
 
-    std::array<int64_t, 2> input_shape{1, 4};
+    std::array<int64_t, 2> input_shape{1, 5};
     auto memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-    auto input_tensor = Ort::Value::CreateTensor<float>(memory_info, features.data(), 4, input_shape.data(), 2);
+    auto input_tensor = Ort::Value::CreateTensor<float>(memory_info, features.data(), 5, input_shape.data(), 2);
 
     const char *input_names[] = {"features"};
     const char *output_names[] = {"score"};
 
     auto output = ort_session_->Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
 
-    float score = *output[0].GetTensorData<float>();
-
-    // DEBUG: print first 10 eviction decisions
-    static int call_count = 0;
-    call_count++;
-    if (call_count % 1000 == 0) {
-      std::cout << "[DEBUG] freq=" << meta.frequency_ << " tsla=" << meta.time_since_last_access_
-                << " avg_int=" << meta.avg_interval_ << " score=" << score << "\n";
-    }
-
-    return score;
+    return *output[0].GetTensorData<float>();
 
   } catch (const Ort::Exception &e) {
     return 0.0f;

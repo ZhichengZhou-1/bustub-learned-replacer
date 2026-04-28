@@ -45,6 +45,9 @@ struct FrameMeta {
   // 0=Unknown, 1=Lookup, 2=Scan, 3=Index
   float access_type_{0};
 
+  // Feature 5: encoded access type of the most recent access
+  float workload_feat_{0};  // 0=sequential, 1=random, 2=mixed
+
   // Internal tracking (not passed to model directly)
   size_t last_access_timestamp_{0};
   size_t total_interval_{0};
@@ -68,7 +71,8 @@ class LearnedReplacer {
 
   auto Evict() -> std::optional<frame_id_t>;
 
-  void RecordAccess(frame_id_t frame_id, page_id_t page_id, AccessType access_type = AccessType::Unknown);
+  void RecordAccess(frame_id_t frame_id, page_id_t page_id, AccessType access_type = AccessType::Unknown,
+                    float workload_feat = 1.0f);
 
   void SetEvictable(frame_id_t frame_id, bool set_evictable);
 

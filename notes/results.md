@@ -61,3 +61,25 @@
 Training on representative workload data is critical.
 Model trained on mixed trace matches LRU on mixed workload
 while still outperforming on sequential scans.
+
+## V3: Belady's approximation via reuse distance regression
+
+- Trained on all 3 workload traces with workload_feat as 5th feature
+- Per-workload feature engineering (no boundary crossing)
+- HuberLoss regression instead of binary classification
+- Evict frame with HIGHEST predicted reuse distance
+
+| Workload      | Hit Rate | Delta vs LRU |
+| ------------- | -------- | ------------ |
+| Sequential    | 30.87%   | +30.87% ✅   |
+| Random        | 31.73%   | +0.15% ≈     |
+| Mixed (80/20) | 84.21%   | -0.13% ≈     |
+
+Validation MAE: 14.6 ops (predicting reuse distance)
+
+### Key finding
+
+A single learned model trained on combined traces with workload type as
+a feature can match LRU on workloads where LRU is near-optimal (random,
+mixed) while dramatically beating LRU on workloads where it fails
+(sequential scan).

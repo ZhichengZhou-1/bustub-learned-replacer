@@ -9,9 +9,9 @@ const size_t POOL_SIZE = 64;
 const size_t NUM_PAGES = 200;
 const size_t OPS = 10000;
 
-void RunWorkload(const std::string &name, std::vector<page_id_t> &sequence) {
+void RunWorkload(const std::string &name, std::vector<page_id_t> &sequence, float workload_feat) {
   std::cout << "Running workload: " << name << "\n";
-  LearnedReplacer replacer(POOL_SIZE);
+  LearnedReplacer replacer(POOL_SIZE, "learned_replacer.onnx", name + "_trace.csv");
 
   size_t hits = 0;
   size_t evictions = 0;
@@ -28,7 +28,7 @@ void RunWorkload(const std::string &name, std::vector<page_id_t> &sequence) {
     // Check if page is already in pool
     if (page_table.count(page_id) > 0) {
       frame_id_t fid = page_table[page_id];
-      replacer.RecordAccess(fid, page_id, AccessType::Lookup);
+      replacer.RecordAccess(fid, page_id, AccessType::Lookup, workload_feat);
       hits++;
       continue;
     }
@@ -89,9 +89,9 @@ int main() {
     mixed.push_back(coin(rng) < 0.8 ? hot_dist(rng) : cold_dist(rng));
   }
 
-  RunWorkload("Sequential Scan", sequential);
-  RunWorkload("Random Access", random_access);
-  RunWorkload("Mixed (80/20)", mixed);
+  RunWorkload("sequential", sequential, 0.0f);
+  RunWorkload("random", random_access, 1.0f);
+  RunWorkload("mixed", mixed, 2.0f);
 
   std::cout << "Trace written to access_trace.csv in build directory\n";
   return 0;

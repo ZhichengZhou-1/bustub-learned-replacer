@@ -247,3 +247,6 @@ docs/dev
 
 # LLM Stuff
 .aider*
+
+# Training artifacts
+python/model*

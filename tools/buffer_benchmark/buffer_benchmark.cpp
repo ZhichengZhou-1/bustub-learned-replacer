@@ -54,7 +54,7 @@ void RunWorkload(const std::string &name, std::vector<page_id_t> &sequence, floa
     // Load page into frame
     page_table[page_id] = fid;
     frame_table[fid] = page_id;
-    replacer.RecordAccess(fid, page_id, AccessType::Lookup);
+    replacer.RecordAccess(fid, page_id, AccessType::Lookup, workload_feat);
     replacer.SetEvictable(fid, true);
   }
 
@@ -93,6 +93,5 @@ int main() {
   RunWorkload("random", random_access, 1.0f);
   RunWorkload("mixed", mixed, 2.0f);
 
-  std::cout << "Trace written to access_trace.csv in build directory\n";
   return 0;
 }

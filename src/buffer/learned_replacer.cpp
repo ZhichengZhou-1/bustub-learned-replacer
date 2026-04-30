@@ -57,19 +57,6 @@ auto LearnedReplacer::Evict() -> std::optional<frame_id_t> {
     frame_id_t best_frame = -1;
     float highest_score = -std::numeric_limits<float>::max();
 
-    // DEBUG
-    static int evict_count = 0;
-    if (evict_count < 5) {
-      std::cout << "[EVICT DEBUG] Candidates:\n";
-      for (auto &[fid, meta] : frame_meta_) {
-        if (!meta.is_evictable_) continue;
-        float s = RunInference(meta);
-        std::cout << "  frame=" << fid << " freq=" << meta.frequency_ << " tsla=" << meta.time_since_last_access_
-                  << " score=" << s << "\n";
-      }
-      evict_count++;
-    }
-
     for (auto &[fid, meta] : frame_meta_) {
       if (!meta.is_evictable_) {
         continue;
@@ -100,13 +87,6 @@ void LearnedReplacer::RecordAccess(frame_id_t frame_id, page_id_t page_id, Acces
 
   if (static_cast<size_t>(frame_id) >= replacer_size_) {
     throw Exception("LearnedReplacer: invalid frame_id in RecordAccess");
-
-    // Write to trace file
-    if (tracing_enabled_) {
-      trace_file_ << current_timestamp_ << "," << frame_id << "," << page_id << "," << static_cast<int>(access_type)
-                  << "\n";
-      trace_file_.flush();
-    }
   }
 
   current_timestamp_++;
@@ -184,8 +164,8 @@ auto LearnedReplacer::RunInference(const FrameMeta &meta) -> float {
   }
 
   try {
-    constexpr std::array<float, 5> MEANS = {1316.6837f, 67.3017f, 59.4072f, 1.0f, 1.0f};
-    constexpr std::array<float, 5> STDS = {2188.5430f, 209.5870f, 123.8517f, 1.0f, 0.8165f};
+    constexpr std::array<float, 5> MEANS = {107.4788f, 69.6662f, 63.3813f, 1.0f, 1.0f};
+    constexpr std::array<float, 5> STDS = {91.2106f, 90.5037f, 45.5098f, 1.0f, 0.8165f};
 
     std::array<float, 5> raw = {meta.frequency_, meta.time_since_last_access_, meta.avg_interval_, meta.access_type_,
                                 meta.workload_feat_};

@@ -196,7 +196,7 @@ You should see `[LearnedReplacer] Model loaded from learned_replacer.onnx` for e
 
 Settings: pool size = 64 frames, 200 total pages, 10,000 ops per workload.
 
-### V1 results
+### Final results
 
 | Workload        | LRU Baseline | Learned Model | Delta      |
 | --------------- | ------------ | ------------- | ---------- |
@@ -207,29 +207,3 @@ Settings: pool size = 64 frames, 200 total pages, 10,000 ops per workload.
 Sequential scan shows the biggest win — the model learned that sequentially scanned pages will return. Random access is inherently unpredictable so both policies perform similarly. Mixed workload was able to maintain its relative performance.
 
 See `notes/results.md` for full version history and improvement tracking.
-
----
-
-## Known Issues & Future Work
-
-- **Class imbalance in training** — ~65% of labels are positive, causing the model to predict majority class. Fix: add `pos_weight` to `BCELoss`.
-- **No normalization at inference** — `StandardScaler` is fit in Python but not applied in C++. Fix: hardcode scaler mean/std into C++ `RunInference()`.
-- **Shallow feature set** — only 4 features. Could add: time-since-last-access, access count in sliding window, page_id embedding.
-- **Static model** — model is trained once offline. Could be improved with periodic retraining or online updates.
-- **ARC comparison missing** — currently only comparing against LRU fallback. Need to benchmark against BusTub's built-in ARC replacer.
-
----
-
-## Related Work
-
-| Paper                            | Key Idea                                                                    |
-| -------------------------------- | --------------------------------------------------------------------------- |
-| LBR (Liu et al.)                 | Classifier and regressor for DB buffer replacement, evaluated in simulation |
-| LeCaR (Vietri et al., 2018)      | Online RL blending LRU and LFU, beats ARC at small cache sizes              |
-| PARROT (Liu et al., 2020)        | Imitation learning from Bélady's optimal policy using LSTM                  |
-| CACHEUS (Rodriguez et al., 2021) | Fully adaptive LeCaR with no static hyperparameters                         |
-| LSTM-CRP (Wang et al., 2024)     | LSTM-based cache replacement policy                                         |
-
-This project differs from all of the above by implementing learned replacement inside a real DBMS buffer pool manager (BusTub) rather than a cache simulator, and by exploiting database-specific `AccessType` metadata not available in CPU cache or CDN cache contexts.
-
----

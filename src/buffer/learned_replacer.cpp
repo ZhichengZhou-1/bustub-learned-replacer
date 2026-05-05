@@ -40,7 +40,6 @@ LearnedReplacer::LearnedReplacer(size_t num_frames, const std::string &model_pat
 }
 
 LearnedReplacer::~LearnedReplacer() {
-  // TODO(Phase 5): free ONNX session and env
   if (trace_file_.is_open()) {
     trace_file_.close();
   }

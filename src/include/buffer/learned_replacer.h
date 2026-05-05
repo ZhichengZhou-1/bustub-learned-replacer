@@ -58,7 +58,7 @@ struct FrameMeta {
  * LearnedReplacer uses a trained ONNX model to predict next-access time
  * and evicts the frame least likely to be accessed soon.
  *
- * Drop-in replacement for ArcReplacer — same public interface.
+ * Drop-in replacement for ArcReplacer - same public interface.
  */
 class LearnedReplacer {
  public:

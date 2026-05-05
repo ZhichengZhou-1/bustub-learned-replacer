@@ -196,13 +196,4 @@ result = sess.run(["score"], {"features": test_norm})
 print(f"Test inference (normalized reuse distance): {result[0][0][0]:.4f}")
 print("Higher value = evict this frame (longer until next access)")
 
-print(
-    """
-Done!
-Next steps:
-  1. Update C++ MEANS/STDS to 5 values from scaler_params.json
-  2. Update C++ Evict() to pick HIGHEST score (not lowest)
-  3. Copy model.onnx to build/learned_replacer.onnx
-  4. Run ./bin/buffer_benchmark
-"""
-)
+print(""" Done! """)

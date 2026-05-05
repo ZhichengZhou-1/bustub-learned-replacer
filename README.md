@@ -72,6 +72,7 @@ Input features per frame (4 total):
 - `recency` — timestamp of most recent access
 - `avg_interval` — average time between accesses
 - `access_type` — encoded access type (0=Unknown, 1=Lookup, 2=Scan, 3=Index)
+- `workload_feat` — workload type indicator (0=sequential, 1=random, 2=mixed)
 
 Output: a score between 0 and 1. Higher score = more likely to be accessed soon = do NOT evict. Lower score = safer to evict.
 
@@ -200,10 +201,10 @@ Settings: pool size = 64 frames, 200 total pages, 10,000 ops per workload.
 | Workload        | LRU Baseline | Learned Model | Delta      |
 | --------------- | ------------ | ------------- | ---------- |
 | Sequential Scan | 0%           | 26.46%        | +26.46% ✅ |
-| Random Access   | 31.58%       | 31.76%        | +0.18% ≈   |
-| Mixed (80/20)   | 84.34%       | 66.87%        | -17.47% ❌ |
+| Random Access   | 31.58%       | 32.49%        | +0.91% ≈   |
+| Mixed (80/20)   | 84.34%       | 84.56%        | +0.22% ≈   |
 
-Sequential scan shows the biggest win — the model learned that sequentially scanned pages will return. Random access is inherently unpredictable so both policies perform similarly. Mixed workload regresses because the model is not learning well yet (validation accuracy stuck at ~65% due to class imbalance).
+Sequential scan shows the biggest win — the model learned that sequentially scanned pages will return. Random access is inherently unpredictable so both policies perform similarly. Mixed workload was able to maintain its relative performance.
 
 See `notes/results.md` for full version history and improvement tracking.
 

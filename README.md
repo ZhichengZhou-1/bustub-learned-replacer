@@ -1,3 +1,6 @@
+[![Read PDF](https://img.shields.io/badge/Read-Paper_PDF-red.svg)](./paper.pdf)
+[![Repository](https://img.shields.io/badge/Repo-Code-blue.svg)](./)
+
 <img src="logo/bustub-whiteborder.svg" alt="BusTub Logo" height="200">
 
 -----------------
